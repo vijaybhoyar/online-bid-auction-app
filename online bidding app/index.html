@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BidSphere - Online Real-Time Auction System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- Persistent Top Header -->
+  <header class="sticky top-0 z-30 bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between shadow-sm">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-extrabold text-lg shadow-sm">
+        🔨
+      </div>
+      <div>
+        <span class="text-xl font-extrabold tracking-tight text-slate-900">BidSphere</span>
+        <span class="hidden sm:inline-block ml-2 text-xs bg-indigo-100 text-indigo-800 px-2.5 py-0.5 rounded-full font-semibold">
+          Live Auction Portal
+        </span>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <!-- Quick Wallet Chip -->
+      <button onclick="switchTab('User Wallet')" class="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold hover:bg-emerald-100 transition">
+        <span>💳 Wallet:</span>
+        <span id="header-wallet">₹85,000</span>
+      </button>
+
+      <!-- Notification Bell -->
+      <button onclick="switchTab('Notifications')" title="Bid Notifications" class="relative p-2.5 rounded-full hover:bg-slate-100 border border-slate-200 transition">
+        🔔
+        <span id="notif-badge" class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center">
+          2
+        </span>
+      </button>
+
+      <!-- Clickable Profile Avatar -->
+      <button onclick="switchTab('My Profile')" title="Open My Profile" class="flex items-center gap-3 p-1.5 pr-3.5 rounded-full hover:bg-slate-100 transition border border-slate-200 cursor-pointer">
+        <div id="header-initials" class="w-9 h-9 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm">
+          JD
+        </div>
+        <div class="text-left hidden sm:block">
+          <p id="header-name" class="text-xs font-bold text-slate-800 leading-tight">Jayesh Deshmukh</p>
+          <p class="text-[11px] text-indigo-600 font-semibold">Verified Bidder</p>
+        </div>
+      </button>
+    </div>
+  </header>
+
+  <!-- Toast Notification Popup -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden bg-slate-900 text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium border border-slate-700"></div>
+
+  <!-- Main Layout -->
+  <div class="flex flex-1">
+    <!-- Left Sidebar -->
+    <aside class="w-64 bg-white border-r border-slate-200 p-4 hidden md:flex flex-col justify-between">
+      <nav class="space-y-1.5">
+        <button onclick="switchTab('Live Auctions')" id="nav-Live Auctions" class="w-full text-left px-4 py-3 rounded-xl font-semibold text-sm transition bg-indigo-600 text-white shadow-sm">
+          🔨 Live Auctions
+        </button>
+        <button onclick="switchTab('Bid History')" id="nav-Bid History" class="w-full text-left px-4 py-3 rounded-xl font-semibold text-sm transition text-slate-600 hover:bg-slate-100">
+          📜 Bid History
+        </button>
+        <button onclick="switchTab('User Wallet')" id="nav-User Wallet" class="w-full text-left px-4 py-3 rounded-xl font-semibold text-sm transition text-slate-600 hover:bg-slate-100">
+          💳 User Wallet
+        </button>
+        <button onclick="switchTab('Notifications')" id="nav-Notifications" class="w-full text-left px-4 py-3 rounded-xl font-semibold text-sm transition text-slate-600 hover:bg-slate-100">
+          🔔 Notifications
+        </button>
+        <button onclick="switchTab('My Profile')" id="nav-My Profile" class="w-full text-left px-4 py-3 rounded-xl font-semibold text-sm transition text-slate-600 hover:bg-slate-100">
+          👤 My Profile
+        </button>
+      </nav>
+
+      <div class="p-4 rounded-xl bg-indigo-50 border border-indigo-100 text-xs text-indigo-900 space-y-2">
+        <p class="font-bold">⚡ Real-Time Bidding Active</p>
+        <p class="text-indigo-700">All bids are backed by your verified user wallet balance.</p>
+        <button onclick="openAddAuctionModal()" class="w-full py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition">
+          + List Item for Auction
+        </button>
+      </div>
+    </aside>
+
+    <!-- Mobile Bottom Bar -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-20 flex overflow-x-auto p-2 gap-1">
+      <button onclick="switchTab('Live Auctions')" class="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 whitespace-nowrap">Live Auctions</button>
+      <button onclick="switchTab('Bid History')" class="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 whitespace-nowrap">Bid History</button>
+      <button onclick="switchTab('User Wallet')" class="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 whitespace-nowrap">Wallet</button>
+      <button onclick="switchTab('Notifications')" class="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 whitespace-nowrap">Alerts</button>
+      <button onclick="switchTab('My Profile')" class="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 whitespace-nowrap">Profile</button>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 p-6 md:p-8 pb-20 md:pb-8 max-w-6xl mx-auto w-full">
+      <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-200 pb-4">
+        <div>
+          <h1 id="page-title" class="text-2xl font-bold text-slate-900">Live Auctions</h1>
+          <p class="text-sm text-slate-500">Real-time online bidding, countdown timers, and instant wallet settlement.</p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="openDepositModal(10000)" class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition">
+            💳 + Deposit Funds
+          </button>
+          <button onclick="openAddAuctionModal()" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition">
+            + Create Auction Listing
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 1: LIVE AUCTIONS -->
+      <div id="tab-Live Auctions" class="space-y-6">
+        <!-- Summary Metrics -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-xs font-bold text-slate-400 uppercase">Active Auctions</p>
+            <p id="stat-active-count" class="text-3xl font-extrabold text-indigo-600 mt-1">4</p>
+            <p class="text-xs text-slate-500 mt-1">Live countdowns running</p>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-xs font-bold text-slate-400 uppercase">Total Bids Placed</p>
+            <p id="stat-total-bids" class="text-3xl font-extrabold text-slate-900 mt-1">3</p>
+            <p class="text-xs text-emerald-600 font-medium mt-1">Real-time bid tracking</p>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-xs font-bold text-slate-400 uppercase">Your Winning Bids</p>
+            <p id="stat-winning-count" class="text-3xl font-extrabold text-amber-600 mt-1">1</p>
+            <p class="text-xs text-slate-500 mt-1">Highest bidder status</p>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-xs font-bold text-slate-400 uppercase">Available Wallet</p>
+            <p id="stat-wallet" class="text-2xl font-extrabold text-emerald-700 mt-1">₹85,000</p>
+            <p class="text-xs text-slate-500 mt-1">Ready for instant bidding</p>
+          </div>
+        </div>
+
+        <!-- Live Auction Cards Grid -->
+        <div id="auctions-grid" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+      </div>
+
+      <!-- TAB 2: BID HISTORY -->
+      <div id="tab-Bid History" class="hidden space-y-4">
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <h2 class="text-lg font-bold text-slate-900 mb-4">Complete Real-Time Bid History</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr class="border-b border-slate-200 text-xs uppercase text-slate-400">
+                  <th class="py-3 px-4">Auction Item</th>
+                  <th class="py-3 px-4">Bidder Name</th>
+                  <th class="py-3 px-4">Bid Amount</th>
+                  <th class="py-3 px-4">Time</th>
+                  <th class="py-3 px-4">Status</th>
+                </tr>
+              </thead>
+              <tbody id="bid-history-tbody" class="divide-y divide-slate-200"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: USER WALLET -->
+      <div id="tab-User Wallet" class="hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Wallet Card -->
+          <div class="bg-indigo-600 text-white p-6 rounded-2xl shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between">
+                <p class="text-xs uppercase font-bold text-indigo-200">Verified Auction Wallet</p>
+                <span class="text-[11px] bg-white/20 px-2.5 py-0.5 rounded-full font-semibold">KYC Active</span>
+              </div>
+              <p id="wallet-main-balance" class="text-4xl font-extrabold mt-3">₹85,000</p>
+              <p class="text-xs text-indigo-100 mt-2">Account Holder: <span id="wallet-owner" class="font-semibold">Jayesh Deshmukh</span></p>
+              <p id="wallet-linked-ac" class="text-xs text-indigo-200 mt-1">Primary A/C: State Bank of India (••••4829)</p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-indigo-500/50">
+              <p class="text-[11px] text-indigo-200 mb-2 font-medium">Quick Top-Up (Opens Payment Gateway):</p>
+              <div class="flex gap-2">
+                <button onclick="openDepositModal(5000)" class="flex-1 py-2 bg-white/15 hover:bg-white/25 rounded-xl text-xs font-bold transition">+ ₹5,000</button>
+                <button onclick="openDepositModal(10000)" class="flex-1 py-2 bg-white/15 hover:bg-white/25 rounded-xl text-xs font-bold transition">+ ₹10,000</button>
+                <button onclick="openDepositModal(25000)" class="flex-1 py-2 bg-white/15 hover:bg-white/25 rounded-xl text-xs font-bold transition">+ ₹25,000</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Deposit & Transaction Panel -->
+          <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+              <div>
+                <h3 class="text-lg font-bold text-slate-900">Add Funds to Auction Wallet</h3>
+                <p class="text-xs text-slate-500">Enter an amount to open the bank account & payment mode verification screen.</p>
+              </div>
+            </div>
+
+            <form onsubmit="handleOpenCustomDeposit(event)" class="flex flex-col sm:flex-row gap-3">
+              <input
+                type="number"
+                id="custom-fund-amount"
+                min="500"
+                required
+                placeholder="Enter deposit amount in ₹ (e.g. 15000)"
+                class="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 text-sm"
+              />
+              <button type="submit" class="px-6 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition">
+                Proceed to Payment Mode →
+              </button>
+            </form>
+
+            <h4 class="text-xs font-bold uppercase text-slate-400 mt-6 mb-3">Recent Wallet & Bank Transactions</h4>
+            <div id="wallet-tx-list" class="space-y-2.5"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: NOTIFICATIONS -->
+      <div id="tab-Notifications" class="hidden space-y-4">
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-bold text-slate-900">Bid & Wallet Notifications</h2>
+            <button onclick="markAllRead()" class="text-xs font-bold text-indigo-600 hover:underline">Mark All as Read</button>
+          </div>
+          <div id="notifications-list" class="space-y-3"></div>
+        </div>
+      </div>
+
+      <!-- TAB 5: MY PROFILE -->
+      <div id="tab-My Profile" class="hidden">
+        <div class="max-w-xl bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-4">
+              <div id="profile-avatar" class="w-14 h-14 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-xl">
+                JD
+              </div>
+              <div>
+                <h2 id="profile-display-name" class="text-xl font-bold text-slate-900">Jayesh Deshmukh</h2>
+                <p id="profile-display-email" class="text-xs text-slate-500">jayesh@college.edu</p>
+              </div>
+            </div>
+            <button onclick="toggleProfileEdit(true)" id="edit-profile-btn" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-800 text-xs font-semibold hover:bg-slate-200">
+              Edit Profile
+            </button>
+          </div>
+
+          <!-- Profile View Mode -->
+          <div id="profile-view-mode" class="space-y-3 text-sm border-t border-slate-200 pt-4">
+            <div class="flex justify-between py-1.5"><span class="text-slate-500">Full Name:</span><span id="pv-name" class="font-semibold">Jayesh Deshmukh</span></div>
+            <div class="flex justify-between py-1.5"><span class="text-slate-500">Age:</span><span id="pv-age" class="font-semibold">21 Years</span></div>
+            <div class="flex justify-between py-1.5"><span class="text-slate-500">Phone Number:</span><span id="pv-phone" class="font-semibold">+91 98765 43210</span></div>
+            <div class="flex justify-between py-1.5"><span class="text-slate-500">Email:</span><span id="pv-email" class="font-semibold">jayesh@college.edu</span></div>
+          </div>
+
+          <!-- Profile Edit Form -->
+          <form id="profile-edit-mode" onsubmit="saveProfile(event)" class="hidden space-y-4 border-t border-slate-200 pt-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Full Name</label>
+              <input type="text" id="pe-name" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Age</label>
+              <input type="number" id="pe-age" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Phone Number</label>
+              <input type="text" id="pe-phone" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Email Address</label>
+              <input type="email" id="pe-email" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm" />
+            </div>
+            <div class="flex gap-3 pt-2">
+              <button type="submit" class="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700">Save Changes</button>
+              <button type="button" onclick="toggleProfileEdit(false)" class="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl text-sm font-semibold">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL 1: PLACE BID INTERFACE -->
+  <div id="bid-modal" class="fixed inset-0 z-50 hidden bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+      <h3 id="modal-item-title" class="text-lg font-bold text-slate-900">Place Live Bid</h3>
+      <p id="modal-current-bid" class="text-xs text-slate-500 mt-1"></p>
+      <form onsubmit="confirmBid(event)" class="space-y-4 mt-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Bidder Name</label>
+          <input type="text" id="modal-bidder-name" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Your Bid Amount (₹)</label>
+          <input type="number" id="modal-bid-amount" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-bold" />
+          <p id="modal-min-hint" class="text-[11px] text-indigo-600 mt-1 font-medium"></p>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="submit" class="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700">Confirm Bid</button>
+          <button type="button" onclick="closeBidModal()" class="px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl text-sm font-semibold">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2: CREATE NEW AUCTION LISTING -->
+  <div id="add-auction-modal" class="fixed inset-0 z-50 hidden bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+      <h3 class="text-lg font-bold text-slate-900">List New Item for Auction</h3>
+      <form onsubmit="createNewAuction(event)" class="space-y-4 mt-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Item Title</label>
+          <input type="text" id="new-item-title" required placeholder="e.g., Vintage Mechanical Watch" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Category</label>
+          <select id="new-item-category" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm">
+            <option>Luxury Watches</option>
+            <option>Electronics</option>
+            <option>Collectibles & Art</option>
+            <option>Automobiles</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Starting Bid (₹)</label>
+            <input type="number" id="new-item-price" min="500" required value="5000" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Timer (Minutes)</label>
+            <input type="number" id="new-item-mins" min="1" max="120" required value="15" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm" />
+          </div>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="submit" class="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700">Launch Live Auction</button>
+          <button type="button" onclick="closeAddAuctionModal()" class="px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl text-sm font-semibold">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 3: BANK ACCOUNT & PAYMENT MODE DEPOSIT INTERFACE -->
+  <div id="deposit-modal" class="fixed inset-0 z-50 hidden bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900">💳 Bank Deposit & Payment Gateway</h3>
+          <p class="text-xs text-slate-500">Enter your account details and choose a payment mode</p>
+        </div>
+        <button type="button" onclick="closeDepositModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+      </div>
+
+      <form onsubmit="confirmDeposit(event)" class="space-y-4 mt-4">
+        <!-- Amount -->
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Deposit Amount (₹)</label>
+          <input
+            type="number"
+            id="dep-amount"
+            min="500"
+            required
+            class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-base font-extrabold text-emerald-700 bg-emerald-50/50"
+          />
+        </div>
+
+        <!-- Payment Mode Selection -->
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Select Payment Mode</label>
+          <select
+            id="dep-mode"
+            onchange="updatePaymentModeFields()"
+            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold bg-white"
+          >
+            <option value="Net Banking (IMPS/NEFT)">🏦 Net Banking (IMPS / NEFT Transfer)</option>
+            <option value="UPI Instant Pay">📱 UPI Linked Bank Account (GPay / PhonePe)</option>
+            <option value="Debit / Credit Card">💳 Debit / Credit Card</option>
+          </select>
+        </div>
+
+        <!-- Bank Name -->
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Select Bank</label>
+          <select id="dep-bank" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm">
+            <option value="State Bank of India">State Bank of India (SBI)</option>
+            <option value="HDFC Bank">HDFC Bank</option>
+            <option value="ICICI Bank">ICICI Bank</option>
+            <option value="Axis Bank">Axis Bank</option>
+            <option value="Bank of Maharashtra">Bank of Maharashtra</option>
+          </select>
+        </div>
+
+        <!-- Account Number Input -->
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Bank Account Number</label>
+          <input
+            type="text"
+            id="dep-account-no"
+            required
+            minlength="8"
+            maxlength="16"
+            placeholder="Enter 10 to 16-digit Account Number"
+            value="309812764829"
+            class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-mono tracking-wider"
+          />
+        </div>
+
+        <!-- Secondary Dynamic Field (IFSC / UPI ID / Card CVV) -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label id="dep-extra-label" class="block text-xs font-bold text-slate-600 uppercase mb-1">IFSC Code</label>
+            <input
+              type="text"
+              id="dep-extra-input"
+              required
+              placeholder="SBIN0004321"
+              value="SBIN0004321"
+              class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm uppercase"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Account Holder</label>
+            <input
+              type="text"
+              id="dep-holder-name"
+              required
+              class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
+            />
+          </div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-500">
+          🔒 256-Bit SSL Encrypted Transaction. Funds will be credited immediately to your BidSphere Wallet.
+        </div>
+
+        <div class="flex gap-3 pt-1">
+          <button
+            type="submit"
+            class="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition"
+          >
+            ✓ Verify & Deposit Now
+          </button>
+          <button
+            type="button"
+            onclick="closeDepositModal()"
+            class="px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl text-sm font-semibold"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Application State
+    let profile = {
+      name: 'Jayesh Deshmukh',
+      age: '21',
+      phone: '+91 98765 43210',
+      email: 'jayesh@college.edu'
+    };
+
+    let walletBalance = 85000;
+    let primaryAccountDisplay = 'State Bank of India (••••4829)';
+
+    let walletTransactions = [
+      {
+        id: 1,
+        title: 'Bank Deposit • State Bank of India (A/C ••••4829)',
+        mode: 'Net Banking (IMPS/NEFT)',
+        amount: '+ ₹1,00,000',
+        time: '2 days ago',
+        type: 'credit'
+      },
+      {
+        id: 2,
+        title: 'Bid Reserved: Vintage Casio Edifice Chronograph',
+        mode: 'Auction Wallet Hold',
+        amount: '- ₹15,000',
+        time: '1 hour ago',
+        type: 'debit'
+      }
+    ];
+
+    let auctions = [
+      { id: 1, title: 'Vintage Casio Edifice Chronograph', category: 'Luxury Watches', currentBid: 15000, highestBidder: 'Jayesh Deshmukh', secondsLeft: 520, minIncrement: 500 },
+      { id: 2, title: 'Apple MacBook Pro M3 (16GB/512GB)', category: 'Electronics', currentBid: 42000, highestBidder: 'Rohan Kulkarni', secondsLeft: 1240, minIncrement: 1000 },
+      { id: 3, title: 'Rare 1947 Silver Collector Coin Set', category: 'Collectibles & Art', currentBid: 8500, highestBidder: 'Ananya Sharma', secondsLeft: 310, minIncrement: 500 },
+      { id: 4, title: 'Sony Alpha A7 III Mirrorless Camera', category: 'Electronics', currentBid: 34000, highestBidder: 'Vikram Joshi', secondsLeft: 890, minIncrement: 1000 }
+    ];
+
+    let bidHistory = [
+      { id: 101, item: 'Vintage Casio Edifice Chronograph', bidder: 'Jayesh Deshmukh', amount: 15000, time: '10 mins ago' },
+      { id: 102, item: 'Apple MacBook Pro M3 (16GB/512GB)', bidder: 'Rohan Kulkarni', amount: 42000, time: '24 mins ago' },
+      { id: 103, item: 'Rare 1947 Silver Collector Coin Set', bidder: 'Ananya Sharma', amount: 8500, time: '1 hour ago' }
+    ];
+
+    let notifications = [
+      { id: 1, title: 'You are the Highest Bidder!', message: 'Your bid of ₹15,000 leads on Vintage Casio Edifice Chronograph.', time: '10 mins ago', unread: true },
+      { id: 2, title: 'Auction Ending Soon', message: 'Rare 1947 Silver Collector Coin Set has less than 6 minutes remaining.', time: '15 mins ago', unread: true }
+    ];
+
+    let activeBidAuctionId = null;
+
+    function formatINR(num) {
+      return '₹' + Number(num).toLocaleString('en-IN');
+    }
+
+    function formatTime(sec) {
+      if (sec <= 0) return 'Ended';
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2, '0')}m : ${String(s).padStart(2, '0')}s`;
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.innerText = '✓ ' + msg;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 3500);
+    }
+
+    function switchTab(tabName) {
+      const tabs = ['Live Auctions', 'Bid History', 'User Wallet', 'Notifications', 'My Profile'];
+      tabs.forEach(t => {
+        document.getElementById('tab-' + t).classList.add('hidden');
+        const navBtn = document.getElementById('nav-' + t);
+        if (navBtn) {
+          navBtn.className = 'w-full text-left px-4 py-3 rounded-xl font-semibold text-sm transition text-slate-600 hover:bg-slate-100';
+        }
+      });
+
+      document.getElementById('tab-' + tabName).classList.remove('hidden');
+      const activeBtn = document.getElementById('nav-' + tabName);
+      if (activeBtn) {
+        activeBtn.className = 'w-full text-left px-4 py-3 rounded-xl font-semibold text-sm transition bg-indigo-600 text-white shadow-sm';
+      }
+      document.getElementById('page-title').innerText = tabName;
+      renderAll();
+    }
+
+    // Render Live Auctions Grid
+    function renderAuctions() {
+      const grid = document.getElementById('auctions-grid');
+      grid.innerHTML = auctions.map(item => {
+        const isLeading = item.highestBidder.toLowerCase() === profile.name.toLowerCase();
+        const ended = item.secondsLeft <= 0;
+        return `
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700">${item.category}</span>
+                <span class="text-xs font-extrabold px-3 py-1 rounded-full ${ended ? 'bg-slate-200 text-slate-600' : 'bg-amber-100 text-amber-800'}">
+                  ⏱️ <span id="timer-${item.id}">${formatTime(item.secondsLeft)}</span>
+                </span>
+              </div>
+              <h3 class="text-lg font-bold text-slate-900 mt-3">${item.title}</h3>
+              <div class="mt-4 p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                <div>
+                  <p class="text-[11px] font-bold uppercase text-slate-400">Current Highest Bid</p>
+                  <p class="text-2xl font-extrabold text-indigo-600">${formatINR(item.currentBid)}</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-[11px] font-bold uppercase text-slate-400">Highest Bidder</p>
+                  <p class="text-xs font-bold ${isLeading ? 'text-emerald-700' : 'text-slate-800'}">
+                    ${item.highestBidder} ${isLeading ? '(You)' : ''}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <button
+              onclick="openBidModal(${item.id})"
+              ${ended ? 'disabled' : ''}
+              class="mt-5 w-full py-2.5 rounded-xl text-sm font-bold transition ${
+                ended ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700'
+              }"
+            >
+              ${ended ? 'Auction Ended' : '🔨 Place Higher Bid'}
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Open Bid Modal
+    function openBidModal(auctionId) {
+      const item = auctions.find(a => a.id === auctionId);
+      if (!item || item.secondsLeft <= 0) return;
+      activeBidAuctionId = auctionId;
+      const minNextBid = item.currentBid + item.minIncrement;
+      document.getElementById('modal-item-title').innerText = item.title;
+      document.getElementById('modal-current-bid').innerText = `Current Bid: ${formatINR(item.currentBid)} by ${item.highestBidder}`;
+      document.getElementById('modal-bidder-name').value = profile.name;
+      document.getElementById('modal-bid-amount').value = minNextBid;
+      document.getElementById('modal-bid-amount').min = minNextBid;
+      document.getElementById('modal-min-hint').innerText = `Minimum required bid: ${formatINR(minNextBid)} (Available Wallet: ${formatINR(walletBalance)})`;
+      document.getElementById('bid-modal').classList.remove('hidden');
+    }
+
+    function closeBidModal() {
+      document.getElementById('bid-modal').classList.add('hidden');
+      activeBidAuctionId = null;
+    }
+
+    function confirmBid(e) {
+      e.preventDefault();
+      const item = auctions.find(a => a.id === activeBidAuctionId);
+      if (!item) return;
+
+      const bidderName = document.getElementById('modal-bidder-name').value.trim();
+      const amount = Number(document.getElementById('modal-bid-amount').value);
+      const minRequired = item.currentBid + item.minIncrement;
+
+      if (amount < minRequired) {
+        alert(`Bid must be at least ${formatINR(minRequired)}`);
+        return;
+      }
+      if (amount > walletBalance) {
+        alert('Insufficient wallet balance! Please deposit funds in the User Wallet tab.');
+        return;
+      }
+
+      walletBalance -= amount;
+      item.currentBid = amount;
+      item.highestBidder = bidderName;
+
+      bidHistory.unshift({
+        id: Date.now(),
+        item: item.title,
+        bidder: bidderName,
+        amount: amount,
+        time: 'Just now'
+      });
+
+      walletTransactions.unshift({
+        id: Date.now() + 1,
+        title: `Bid Placed: ${item.title}`,
+        mode: 'Live Auction Deduction',
+        amount: `- ${formatINR(amount)}`,
+        time: 'Just now',
+        type: 'debit'
+      });
+
+      notifications.unshift({
+        id: Date.now() + 2,
+        title: `New High Bid on ${item.title}`,
+        message: `${bidderName} placed a leading bid of ${formatINR(amount)}.`,
+        time: 'Just now',
+        unread: true
+      });
+
+      closeBidModal();
+      renderAll();
+      showToast(`Bid of ${formatINR(amount)} placed successfully!`);
+    }
+
+    // Add New Auction Modal
+    function openAddAuctionModal() {
+      document.getElementById('add-auction-modal').classList.remove('hidden');
+    }
+    function closeAddAuctionModal() {
+      document.getElementById('add-auction-modal').classList.add('hidden');
+    }
+
+    function createNewAuction(e) {
+      e.preventDefault();
+      const title = document.getElementById('new-item-title').value.trim();
+      const category = document.getElementById('new-item-category').value;
+      const price = Number(document.getElementById('new-item-price').value);
+      const mins = Number(document.getElementById('new-item-mins').value);
+
+      auctions.unshift({
+        id: Date.now(),
+        title,
+        category,
+        currentBid: price,
+        highestBidder: 'Starting Price',
+        secondsLeft: mins * 60,
+        minIncrement: 500
+      });
+
+      notifications.unshift({
+        id: Date.now(),
+        title: 'New Auction Listed',
+        message: `${title} is now live with a starting bid of ${formatINR(price)}.`,
+        time: 'Just now',
+        unread: true
+      });
+
+      document.getElementById('new-item-title').value = '';
+      closeAddAuctionModal();
+      switchTab('Live Auctions');
+      showToast('New auction item listed live!');
+    }
+
+    // LOGICAL BANK DEPOSIT & PAYMENT MODE FUNCTIONS
+    function openDepositModal(defaultAmount) {
+      document.getElementById('dep-amount').value = defaultAmount || 5000;
+      document.getElementById('dep-holder-name').value = profile.name;
+      updatePaymentModeFields();
+      document.getElementById('deposit-modal').classList.remove('hidden');
+    }
+
+    function closeDepositModal() {
+      document.getElementById('deposit-modal').classList.add('hidden');
+    }
+
+    function handleOpenCustomDeposit(e) {
+      e.preventDefault();
+      const val = Number(document.getElementById('custom-fund-amount').value);
+      if (val >= 500) {
+        openDepositModal(val);
+        document.getElementById('custom-fund-amount').value = '';
+      }
+    }
+
+    function updatePaymentModeFields() {
+      const mode = document.getElementById('dep-mode').value;
+      const label = document.getElementById('dep-extra-label');
+      const input = document.getElementById('dep-extra-input');
+
+      if (mode.includes('UPI')) {
+        label.innerText = 'UPI ID / VPA';
+        input.placeholder = 'jayesh@oksbi';
+        input.value = 'jayesh@oksbi';
+      } else if (mode.includes('Card')) {
+        label.innerText = 'Card Last 4 / Pin';
+        input.placeholder = '4591';
+        input.value = '4591';
+      } else {
+        label.innerText = 'IFSC Code';
+        input.placeholder = 'SBIN0004321';
+        input.value = 'SBIN0004321';
+      }
+    }
+
+    function confirmDeposit(e) {
+      e.preventDefault();
+      const amount = Number(document.getElementById('dep-amount').value);
+      const mode = document.getElementById('dep-mode').value;
+      const bank = document.getElementById('dep-bank').value;
+      const accountNo = document.getElementById('dep-account-no').value.trim();
+
+      if (amount < 500) {
+        alert('Minimum deposit amount is ₹500.');
+        return;
+      }
+
+      const last4 = accountNo.slice(-4);
+      walletBalance += amount;
+      primaryAccountDisplay = `${bank} (••••${last4})`;
+
+      walletTransactions.unshift({
+        id: Date.now(),
+        title: `Bank Deposit • ${bank} (A/C ••••${last4})`,
+        mode: mode,
+        amount: `+ ${formatINR(amount)}`,
+        time: 'Just now',
+        type: 'credit'
+      });
+
+      notifications.unshift({
+        id: Date.now() + 1,
+        title: `Wallet Credited: ${formatINR(amount)}`,
+        message: `Deposited via ${mode} from ${bank} A/C ending in ••••${last4}.`,
+        time: 'Just now',
+        unread: true
+      });
+
+      closeDepositModal();
+      renderAll();
+      showToast(`${formatINR(amount)} deposited via ${mode} (A/C ••••${last4})!`);
+    }
+
+    // Notifications
+    function markAllRead() {
+      notifications.forEach(n => n.unread = false);
+      renderAll();
+    }
+
+    // Profile Functions
+    function getInitials(name) {
+      return name.trim().split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'BS';
+    }
+
+    function toggleProfileEdit(editing) {
+      document.getElementById('profile-view-mode').classList.toggle('hidden', editing);
+      document.getElementById('profile-edit-mode').classList.toggle('hidden', !editing);
+      document.getElementById('edit-profile-btn').classList.toggle('hidden', editing);
+      if (editing) {
+        document.getElementById('pe-name').value = profile.name;
+        document.getElementById('pe-age').value = profile.age;
+        document.getElementById('pe-phone').value = profile.phone;
+        document.getElementById('pe-email').value = profile.email;
+      }
+    }
+
+    function saveProfile(e) {
+      e.preventDefault();
+      profile.name = document.getElementById('pe-name').value.trim();
+      profile.age = document.getElementById('pe-age').value.trim();
+      profile.phone = document.getElementById('pe-phone').value.trim();
+      profile.email = document.getElementById('pe-email').value.trim();
+      toggleProfileEdit(false);
+      renderAll();
+      showToast('Profile updated successfully!');
+    }
+
+    // Master Render Function
+    function renderAll() {
+      document.getElementById('header-wallet').innerText = formatINR(walletBalance);
+      document.getElementById('stat-wallet').innerText = formatINR(walletBalance);
+      document.getElementById('wallet-main-balance').innerText = formatINR(walletBalance);
+      document.getElementById('wallet-linked-ac').innerText = 'Primary A/C: ' + primaryAccountDisplay;
+      document.getElementById('stat-active-count').innerText = auctions.filter(a => a.secondsLeft > 0).length;
+      document.getElementById('stat-total-bids').innerText = bidHistory.length;
+      document.getElementById('stat-winning-count').innerText = auctions.filter(a => a.highestBidder.toLowerCase() === profile.name.toLowerCase()).length;
+
+      const initials = getInitials(profile.name);
+      document.getElementById('header-initials').innerText = initials;
+      document.getElementById('profile-avatar').innerText = initials;
+      document.getElementById('header-name').innerText = profile.name;
+      document.getElementById('wallet-owner').innerText = profile.name;
+      document.getElementById('profile-display-name').innerText = profile.name;
+      document.getElementById('profile-display-email').innerText = profile.email;
+      document.getElementById('pv-name').innerText = profile.name;
+      document.getElementById('pv-age').innerText = profile.age + ' Years';
+      document.getElementById('pv-phone').innerText = profile.phone;
+      document.getElementById('pv-email').innerText = profile.email;
+
+      renderAuctions();
+
+      const tbody = document.getElementById('bid-history-tbody');
+      tbody.innerHTML = bidHistory.map(b => `
+        <tr class="hover:bg-slate-50">
+          <td class="py-3.5 px-4 font-semibold text-slate-900">${b.item}</td>
+          <td class="py-3.5 px-4 text-slate-700">${b.bidder}</td>
+          <td class="py-3.5 px-4 font-bold text-indigo-600">${formatINR(b.amount)}</td>
+          <td class="py-3.5 px-4 text-xs text-slate-400">${b.time}</td>
+          <td class="py-3.5 px-4"><span class="text-xs bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full font-bold">Verified</span></td>
+        </tr>
+      `).join('');
+
+      const txList = document.getElementById('wallet-tx-list');
+      txList.innerHTML = walletTransactions.map(tx => `
+        <div class="p-3.5 rounded-xl border border-slate-200 flex items-center justify-between">
+          <div>
+            <p class="text-sm font-semibold text-slate-800">${tx.title}</p>
+            <p class="text-xs text-slate-500 mt-0.5">Mode: <span class="font-medium text-indigo-600">${tx.mode || 'Wallet Transfer'}</span> • ${tx.time}</p>
+          </div>
+          <span class="text-sm font-bold ${tx.type === 'credit' ? 'text-emerald-600' : 'text-rose-600'}">${tx.amount}</span>
+        </div>
+      `).join('');
+
+      const unread = notifications.filter(n => n.unread).length;
+      const badge = document.getElementById('notif-badge');
+      badge.innerText = unread;
+      badge.classList.toggle('hidden', unread === 0);
+
+      const notifList = document.getElementById('notifications-list');
+      notifList.innerHTML = notifications.map(n => `
+        <div class="p-4 rounded-xl border flex items-start justify-between gap-4 ${n.unread ? 'bg-indigo-50/60 border-indigo-200' : 'bg-white border-slate-200'}">
+          <div>
+            <p class="text-sm font-bold text-slate-900">${n.title}</p>
+            <p class="text-xs text-slate-600 mt-1">${n.message}</p>
+          </div>
+          <span class="text-xs text-slate-400 whitespace-nowrap">${n.time}</span>
+        </div>
+      `).join('');
+    }
+
+    // Live 1-Second Countdown Interval
+    setInterval(() => {
+      auctions.forEach(item => {
+        if (item.secondsLeft > 0) {
+          item.secondsLeft -= 1;
+          const timerEl = document.getElementById('timer-' + item.id);
+          if (timerEl) {
+            timerEl.innerText = formatTime(item.secondsLeft);
+          }
+        }
+      });
+    }, 1000);
+
+    renderAll();
+  </script>
+</body>
+</html>
